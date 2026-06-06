@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🌊 El Niño Watch</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --ocean-deep: #0A2342;
+      --ocean-mid: #1B4F8A;
+      --ocean-light: #4A9EDB;
+      --wave-foam: #E8F4FD;
+      --coral: #FF6B47;
+      --warning-yellow: #FFB347;
+      --danger-red: #E74C3C;
+      --safe-green: #27AE60;
+      --card-bg: #FFFFFF;
+      --text-primary: #1A1A2E;
+      --text-muted: #6B7280;
+      --shadow: 0 4px 20px rgba(10,35,66,0.12);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: var(--wave-foam);
+      color: var(--text-primary);
+      min-height: 100vh;
+    }
+
+    /* ── HERO ─────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(160deg, var(--ocean-deep) 0%, var(--ocean-mid) 60%, var(--ocean-light) 100%);
+      padding: 60px 24px 100px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-title {
+      font-size: clamp(2.4rem, 6vw, 4rem);
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: -1px;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.3);
+    }
+    .hero-subtitle {
+      font-size: 1.15rem;
+      color: rgba(255,255,255,0.82);
+      margin-top: 8px;
+      font-weight: 600;
+    }
+    .waves {
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 100%;
+      overflow: hidden;
+      line-height: 0;
+    }
+    .waves svg { display: block; width: 100%; height: 60px; }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 28px;
+      border-radius: 50px;
+      font-size: 1.2rem;
+      font-weight: 800;
+      margin-top: 22px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.25);
+      letter-spacing: 0.3px;
+    }
+    .badge-green  { background: var(--safe-green);    color: #fff; }
+    .badge-yellow { background: var(--warning-yellow); color: #fff; }
+    .badge-coral  { background: var(--coral);          color: #fff; }
+    .badge-red    { background: var(--danger-red);     color: #fff; }
+
+    /* ── LAYOUT ───────────────────────────────────────── */
+    .container { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+    .section { padding: 36px 0 12px; }
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--ocean-deep);
+      margin-bottom: 6px;
+    }
+    .section-sub {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      font-weight: 600;
+    }
+
+    /* ── CARDS ────────────────────────────────────────── */
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      gap: 16px;
+    }
+    .vital-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .vital-emoji { font-size: 2rem; }
+    .vital-label { font-size: 0.82rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .vital-value { font-size: 1.5rem; font-weight: 900; color: var(--ocean-deep); }
+    .vital-unit  { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; }
+    .vital-tag {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+    .tag-green  { background: #e6f9ee; color: var(--safe-green); }
+    .tag-yellow { background: #fff8ec; color: #c47d00; }
+    .tag-coral  { background: #fff1ee; color: var(--coral); }
+    .tag-blue   { background: #e8f4fd; color: var(--ocean-mid); }
+
+    /* ── FORECAST STRIP ───────────────────────────────── */
+    .forecast-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+    @media (max-width: 700px) { .forecast-grid { grid-template-columns: 1fr 1fr; } }
+    .forecast-card {
+      border-radius: var(--radius);
+      padding: 22px 16px;
+      text-align: center;
+      color: #fff;
+      box-shadow: var(--shadow);
+      transition: transform 0.25s;
+    }
+    .forecast-card:hover { transform: translateY(-4px); }
+    .fc-green  { background: linear-gradient(140deg, #27AE60, #1e8449); }
+    .fc-yellow { background: linear-gradient(140deg, #FFB347, #e67e00); }
+    .fc-coral  { background: linear-gradient(140deg, #FF6B47, #c0392b); }
+    .fc-red    { background: linear-gradient(140deg, #E74C3C, #a93226); }
+    .fc-month  { font-size: 0.8rem; font-weight: 700; opacity: 0.85; text-transform: uppercase; letter-spacing: 1px; }
+    .fc-oni    { font-size: 2.4rem; font-weight: 900; margin: 6px 0 4px; }
+    .fc-label  { font-size: 0.88rem; font-weight: 700; }
+    .fc-tip    { font-size: 0.78rem; margin-top: 10px; opacity: 0.9; font-weight: 600; }
+
+    /* ── EXPLAIN CARDS ────────────────────────────────── */
+    .impact-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+    }
+    .impact-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 22px;
+      border-left: 5px solid var(--ocean-light);
+    }
+    .impact-title { font-size: 1rem; font-weight: 800; color: var(--ocean-deep); margin-bottom: 8px; }
+    .impact-text  { font-size: 0.9rem; color: var(--text-muted); font-weight: 600; line-height: 1.6; }
+
+    /* ── CONFIDENCE BAR ───────────────────────────────── */
+    .conf-row { display: flex; flex-direction: column; gap: 12px; }
+    .conf-item { display: flex; align-items: center; gap: 14px; }
+    .conf-month-label { width: 80px; font-size: 0.85rem; font-weight: 700; color: var(--ocean-deep); }
+    .conf-bar-bg { flex: 1; height: 16px; background: var(--wave-foam); border-radius: 8px; overflow: hidden; }
+    .conf-bar-fill { height: 100%; border-radius: 8px; background: linear-gradient(90deg, var(--ocean-light), var(--ocean-mid)); transition: width 0.8s ease; }
+    .conf-pct { width: 42px; text-align: right; font-size: 0.85rem; font-weight: 800; color: var(--ocean-mid); }
+
+    /* ── EXPLAINER CARD ───────────────────────────────── */
+    .explainer-card {
+      background: linear-gradient(135deg, #e8f4fd 0%, #fff 100%);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 28px 32px;
+      border: 2px solid #bee3f8;
+    }
+    .explainer-title { font-size: 1.2rem; font-weight: 900; color: var(--ocean-deep); margin-bottom: 14px; }
+    .explainer-list { display: flex; flex-direction: column; gap: 10px; }
+    .explainer-item { display: flex; align-items: flex-start; gap: 12px; font-size: 0.95rem; font-weight: 600; color: var(--text-primary); line-height: 1.5; }
+    .explainer-dot { font-size: 1.3rem; }
+
+    /* ── SLIDERS ──────────────────────────────────────── */
+    .slider-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; }
+    .slider-item label { display: block; font-size: 0.85rem; font-weight: 700; color: var(--ocean-deep); margin-bottom: 6px; }
+    .slider-item input[type=range] { width: 100%; accent-color: var(--ocean-mid); }
+    .slider-value { font-size: 0.9rem; font-weight: 800; color: var(--ocean-mid); }
+    .predict-btn {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(90deg, var(--ocean-mid), var(--ocean-light));
+      color: #fff;
+      border: none;
+      border-radius: 50px;
+      font-size: 1.1rem;
+      font-weight: 800;
+      cursor: pointer;
+      margin-top: 20px;
+      font-family: 'Nunito', sans-serif;
+      box-shadow: 0 4px 16px rgba(27,79,138,0.35);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .predict-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(27,79,138,0.45); }
+    .predict-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* ── SPINNER ──────────────────────────────────────── */
+    .spinner {
+      width: 36px; height: 36px;
+      border: 4px solid var(--wave-foam);
+      border-top-color: var(--ocean-mid);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 24px auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── FOOTER ───────────────────────────────────────── */
+    footer {
+      background: var(--ocean-deep);
+      color: rgba(255,255,255,0.7);
+      text-align: center;
+      padding: 28px 20px;
+      margin-top: 48px;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    footer strong { color: #fff; }
+
+    /* ── CHART WRAPPER ────────────────────────────────── */
+    .chart-wrap { position: relative; height: 280px; }
+
+    /* ── SPARKLINE ────────────────────────────────────── */
+    .sparkline-wrap { height: 40px; margin-top: 6px; }
+
+    /* ── ANIMATIONS ───────────────────────────────────── */
+    .fade-in { animation: fadeIn 0.5s ease both; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+    .kid-msg {
+      background: linear-gradient(90deg, #fff8ec, #fff);
+      border-left: 4px solid var(--warning-yellow);
+      border-radius: 10px;
+      padding: 12px 18px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--ocean-deep);
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ─── helpers ──────────────────────────────────────────────────────────────────
+const API = '';
+
+function badgeClass(label) {
+  if (!label) return 'badge-green';
+  if (label.includes('Very Strong') || label.includes('Strong')) return 'badge-red';
+  if (label.includes('Moderate')) return 'badge-coral';
+  if (label.includes('Weak')) return 'badge-yellow';
+  return 'badge-green';
+}
+function fcClass(color) {
+  if (!color) return 'fc-green';
+  const map = { 'safe-green': 'fc-green', 'warning-yellow': 'fc-yellow', coral: 'fc-coral', 'danger-red': 'fc-red', 'ocean-light': 'fc-green' };
+  return map[color] || 'fc-green';
+}
+function tagClass(color) {
+  if (!color) return 'tag-green';
+  const map = { 'safe-green': 'tag-green', 'warning-yellow': 'tag-yellow', coral: 'tag-coral', 'ocean-light': 'tag-blue' };
+  return map[color] || 'tag-green';
+}
+
+// ─── sparkline ────────────────────────────────────────────────────────────────
+function Sparkline({ data }) {
+  const ref = useRef(null);
+  const chartRef = useRef(null);
+  useEffect(() => {
+    if (!ref.current || !data || data.length === 0) return;
+    if (chartRef.current) chartRef.current.destroy();
+    const ctx = ref.current.getContext('2d');
+    chartRef.current = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.map((_, i) => i),
+        datasets: [{ data, borderColor: '#4A9EDB', borderWidth: 2, fill: false, pointRadius: 0, tension: 0.4 }]
+      },
+      options: {
+        animation: false, responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        scales: { x: { display: false }, y: { display: false } }
+      }
+    });
+    return () => chartRef.current && chartRef.current.destroy();
+  }, [data]);
+  return <canvas ref={ref} style={{ width: '100%', height: '100%' }} />;
+}
+
+// ─── historical chart ─────────────────────────────────────────────────────────
+function HistoryChart({ history }) {
+  const ref = useRef(null);
+  const chartRef = useRef(null);
+  useEffect(() => {
+    if (!ref.current || !history || history.length === 0) return;
+    if (chartRef.current) chartRef.current.destroy();
+    const ctx = ref.current.getContext('2d');
+    const labels = history.map(h => h.label);
+    const values = history.map(h => h.oni);
+    const colors = values.map(v => v >= 0.5 ? 'rgba(255,107,71,0.7)' : 'rgba(74,158,219,0.7)');
+    chartRef.current = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Ocean Heat Score',
+          data: values,
+          borderColor: '#1B4F8A',
+          backgroundColor: (ctx2) => {
+            const v = values[ctx2.dataIndex];
+            return v >= 0.5 ? 'rgba(255,107,71,0.15)' : 'rgba(74,158,219,0.15)';
+          },
+          borderWidth: 2.5,
+          pointRadius: 3,
+          pointBackgroundColor: colors,
+          tension: 0.4,
+          fill: 'origin'
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx2) => {
+                const v = ctx2.parsed.y;
+                let lvl = 'Normal 😊';
+                if (v >= 2.0) lvl = 'Very Strong El Niño 🚨';
+                else if (v >= 1.5) lvl = 'Strong El Niño 🔴';
+                else if (v >= 1.0) lvl = 'Moderate El Niño ⚠️';
+                else if (v >= 0.5) lvl = 'Weak El Niño 🌤️';
+                return `Ocean was ${v.toFixed(2)}° warmer than normal · ${lvl}`;
+              }
+            }
+          },
+          annotation: { annotations: {} }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { family: 'Nunito', size: 11 }, maxTicksLimit: 12 } },
+          y: {
+            title: { display: true, text: 'How warm is the ocean? →', font: { family: 'Nunito', size: 12 } },
+            grid: { color: '#e8f4fd' },
+            ticks: { font: { family: 'Nunito' } }
+          }
+        }
+      }
+    });
+    return () => chartRef.current && chartRef.current.destroy();
+  }, [history]);
+  return <canvas ref={ref} style={{ width: '100%', height: '100%' }} />;
+}
+
+// ─── forecast bar chart ───────────────────────────────────────────────────────
+function ForecastChart({ forecast }) {
+  const ref = useRef(null);
+  const chartRef = useRef(null);
+  useEffect(() => {
+    if (!ref.current || !forecast || forecast.length === 0) return;
+    if (chartRef.current) chartRef.current.destroy();
+    const ctx = ref.current.getContext('2d');
+    const colorMap = { 'safe-green': '#27AE60', 'warning-yellow': '#FFB347', coral: '#FF6B47', 'danger-red': '#E74C3C', 'ocean-light': '#4A9EDB' };
+    chartRef.current = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: forecast.map(f => f.month_name || `Month ${f.horizon}`),
+        datasets: [{
+          label: 'Ocean Heat Score',
+          data: forecast.map(f => f.oni),
+          backgroundColor: forecast.map(f => colorMap[f.color] || '#27AE60'),
+          borderRadius: 10,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: (c) => `Ocean Heat Score: ${c.parsed.y.toFixed(2)} · ${forecast[c.dataIndex].label}` } }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { family: 'Nunito', size: 11 } } },
+          y: { title: { display: true, text: 'Ocean Heat Score →', font: { family: 'Nunito', size: 12 } }, grid: { color: '#e8f4fd' }, ticks: { font: { family: 'Nunito' } } }
+        }
+      }
+    });
+    return () => chartRef.current && chartRef.current.destroy();
+  }, [forecast]);
+  return <canvas ref={ref} style={{ width: '100%', height: '100%' }} />;
+}
+
+// ─── main app ─────────────────────────────────────────────────────────────────
+function App() {
+  const [status, setStatus]     = useState(null);
+  const [history, setHistory]   = useState(null);
+  const [forecast, setForecast] = useState(null);
+  const [impacts, setImpacts]   = useState(null);
+  const [loading, setLoading]   = useState({ status: true, history: true, forecast: true, impacts: true });
+  const [error, setError]       = useState(null);
+  const [kidMsg, setKidMsg]     = useState('');
+  const [predicting, setPredicting] = useState(false);
+
+  // Sliders state
+  const [sst, setSst]     = useState(0.5);
+  const [soi, setSoi]     = useState(-3.0);
+  const [wind, setWind]   = useState(6.0);
+
+  const fetchStatus = useCallback(async () => {
+    try {
+      const r = await fetch(`${API}/api/status`);
+      const d = await r.json();
+      setStatus(d);
+      setLoading(p => ({ ...p, status: false }));
+    } catch(e) { setError('Could not connect to the server. Is app.py running? 🤔'); setLoading(p => ({ ...p, status: false })); }
+  }, []);
+
+  const fetchHistory = useCallback(async () => {
+    try {
+      const r = await fetch(`${API}/api/history`);
+      const d = await r.json();
+      setHistory(d.history);
+      setLoading(p => ({ ...p, history: false }));
+    } catch(e) { setLoading(p => ({ ...p, history: false })); }
+  }, []);
+
+  const fetchForecast = useCallback(async (overrides = {}) => {
+    setPredicting(true);
+    try {
+      const body = { SST_anomaly: sst, SOI: soi, wind_speed: wind, ...overrides };
+      const r = await fetch(`${API}/api/predict`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const d = await r.json();
+      setForecast(d.forecast);
+      setKidMsg(d.kid_friendly_message);
+      setLoading(p => ({ ...p, forecast: false }));
+    } catch(e) { setLoading(p => ({ ...p, forecast: false })); }
+    setPredicting(false);
+  }, [sst, soi, wind]);
+
+  const fetchImpacts = useCallback(async () => {
+    try {
+      const r = await fetch(`${API}/api/explain/1`);
+      const d = await r.json();
+      setImpacts(d.impacts);
+      setLoading(p => ({ ...p, impacts: false }));
+    } catch(e) { setLoading(p => ({ ...p, impacts: false })); }
+  }, []);
+
+  useEffect(() => {
+    fetchStatus();
+    fetchHistory();
+    fetchForecast();
+    fetchImpacts();
+    const timer = setInterval(() => { fetchStatus(); fetchHistory(); }, 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handlePredict = () => fetchForecast({ SST_anomaly: sst, SOI: soi, wind_speed: wind });
+
+  return (
+    <div>
+      {/* ── HERO ── */}
+      <div className="hero">
+        <div className="hero-title">🌊 El Niño Watch</div>
+        <div className="hero-subtitle">We watch the ocean so you don't have to</div>
+        {loading.status
+          ? <div style={{ color: 'rgba(255,255,255,0.7)', marginTop: 20, fontSize: '1rem' }}>🔄 Checking the ocean...</div>
+          : status && (
+            <div className={`status-badge ${badgeClass(status.label)}`}>
+              {status.label}
+            </div>
+          )
+        }
+        <div className="waves">
+          <svg viewBox="0 0 1440 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0,30 C360,60 1080,0 1440,30 L1440,60 L0,60 Z" fill="#E8F4FD"/>
+          </svg>
+        </div>
+      </div>
+
+      {error && (
+        <div style={{ background: '#fff3cd', border: '2px solid #FFB347', borderRadius: 12, padding: '16px 24px', margin: '20px auto', maxWidth: 700, textAlign: 'center', fontWeight: 700 }}>
+          ⚠️ {error}
+        </div>
+      )}
+
+      <div className="container">
+
+        {/* ── WHAT IS EL NIÑO ── */}
+        <div className="section">
+          <div className="explainer-card">
+            <div className="explainer-title">🤔 What is El Niño?</div>
+            <div className="explainer-list">
+              <div className="explainer-item"><span className="explainer-dot">🌡️</span><span>El Niño happens when the Pacific Ocean gets <strong>too warm</strong> — way warmer than usual.</span></div>
+              <div className="explainer-item"><span className="explainer-dot">🌧️</span><span>This makes rain go to the <strong>wrong places</strong> — some places get floods, others get droughts.</span></div>
+              <div className="explainer-item"><span className="explainer-dot">🌾</span><span>Farmers, families, and cities all feel the effects — from food shortages to water problems.</span></div>
+              <div className="explainer-item"><span className="explainer-dot">🤖</span><span>We use <strong>AI</strong> to warn you <strong>4 months early</strong> so you can prepare before anything bad happens!</span></div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── TODAY'S OCEAN VITALS ── */}
+        <div className="section">
+          <div className="section-title">🩺 Today's Ocean Vitals</div>
+          <div className="section-sub">How is the ocean feeling right now? Green = healthy, Orange = something's off!</div>
+          {loading.status
+            ? <div className="spinner" />
+            : status && status.vitals && (
+              <div className="card-grid">
+                {Object.entries(status.vitals).map(([key, v]) => (
+                  <div key={key} className="vital-card fade-in">
+                    <div className="vital-emoji">{v.emoji}</div>
+                    <div className="vital-label">{v.label}</div>
+                    <div className="vital-value">{v.value}</div>
+                    <div className="vital-unit">{v.unit}</div>
+                    <div className={`vital-tag ${tagClass(v.color)}`}>{v.status_tag}</div>
+                    {status.sparklines && status.sparklines[key] && (
+                      <div className="sparkline-wrap">
+                        <Sparkline data={status.sparklines[key]} />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )
+          }
+        </div>
+
+        {/* ── SLIDERS + PREDICT BUTTON ── */}
+        <div className="section">
+          <div className="card">
+            <div className="section-title" style={{ marginBottom: 6 }}>🔮 Try Your Own Numbers!</div>
+            <div className="section-sub" style={{ marginBottom: 16 }}>Move the sliders to ask "what if the ocean gets even hotter?" then hit Predict!</div>
+            <div className="slider-grid">
+              <div className="slider-item">
+                <label>🌡️ How much warmer the ocean is than normal<br/><span className="slider-value">{sst.toFixed(1)} °C</span></label>
+                <input type="range" min={-2} max={3} step={0.1} value={sst} onChange={e => setSst(parseFloat(e.target.value))} />
+              </div>
+              <div className="slider-item">
+                <label>💨 Wind Balance Score<br/><span className="slider-value">{soi.toFixed(1)}</span></label>
+                <input type="range" min={-20} max={20} step={0.5} value={soi} onChange={e => setSoi(parseFloat(e.target.value))} />
+              </div>
+              <div className="slider-item">
+                <label>🌬️ Wind Strength<br/><span className="slider-value">{wind.toFixed(1)} m/s</span></label>
+                <input type="range" min={1} max={14} step={0.5} value={wind} onChange={e => setWind(parseFloat(e.target.value))} />
+              </div>
+            </div>
+            <button className="predict-btn" onClick={handlePredict} disabled={predicting}>
+              {predicting ? '⏳ Calculating...' : '🔮 Run New Prediction'}
+            </button>
+          </div>
+        </div>
+
+        {/* ── KID MESSAGE ── */}
+        {kidMsg && <div className="kid-msg">💬 {kidMsg}</div>}
+
+        {/* ── 4-MONTH FORECAST STRIP ── */}
+        <div className="section">
+          <div className="section-title">📅 4-Month Ocean Forecast</div>
+          <div className="section-sub">What will the ocean be like in the coming months? Green = calm, Red = get ready!</div>
+          {(loading.forecast || predicting)
+            ? <div className="spinner" />
+            : forecast && (
+              <div className="forecast-grid">
+                {forecast.map((f, i) => (
+                  <div key={i} className={`forecast-card ${fcClass(f.color)} fade-in`}>
+                    <div className="fc-month">Month {f.horizon} · {f.month_name || ''}</div>
+                    <div className="fc-oni">{f.oni.toFixed(2)}</div>
+                    <div className="fc-label">{f.label}</div>
+                    <div className="fc-tip">{f.tip}</div>
+                    <div style={{ marginTop: 8, fontSize: '0.75rem', opacity: 0.75, fontWeight: 700 }}>AI confidence: {f.confidence}%</div>
+                  </div>
+                ))}
+              </div>
+            )
+          }
+        </div>
+
+        {/* ── FORECAST BAR CHART ── */}
+        {forecast && !loading.forecast && (
+          <div className="section">
+            <div className="card">
+              <div className="section-title">📊 Forecast at a Glance</div>
+              <div className="section-sub">Taller bar = warmer ocean. Orange/red bars mean El Niño is coming!</div>
+              <div className="chart-wrap">
+                <ForecastChart forecast={forecast} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── HISTORICAL CHART ── */}
+        <div className="section">
+          <div className="card">
+            <div className="section-title">🌊 Ocean Temperature History</div>
+            <div className="section-sub">Last 3 years. Look for the orange parts — those are when El Niño was happening!</div>
+            {loading.history
+              ? <div className="spinner" />
+              : history && (
+                <div className="chart-wrap">
+                  <HistoryChart history={history} />
+                </div>
+              )
+            }
+          </div>
+        </div>
+
+        {/* ── WHAT DOES THIS MEAN FOR YOU ── */}
+        <div className="section">
+          <div className="section-title">🧭 What Does This Mean For You?</div>
+          <div className="section-sub">Here's plain advice for different groups of people based on our forecast.</div>
+          {loading.impacts
+            ? <div className="spinner" />
+            : impacts && (
+              <div className="impact-grid">
+                {Object.entries(impacts).map(([key, text]) => (
+                  <div key={key} className="impact-card fade-in">
+                    <div className="impact-title">{text.split(' ').slice(0, 2).join(' ')}</div>
+                    <div className="impact-text">{text.split(' ').slice(2).join(' ')}</div>
+                  </div>
+                ))}
+              </div>
+            )
+          }
+        </div>
+
+        {/* ── CONFIDENCE BAR ── */}
+        <div className="section">
+          <div className="card">
+            <div className="section-title">🤖 How Confident is Our AI?</div>
+            <div className="section-sub">We're more sure about next month than 4 months from now — that's totally normal!</div>
+            <div className="conf-row">
+              {[{m:'Month 1 (next month)', pct:87},{m:'Month 2',pct:74},{m:'Month 3',pct:61},{m:'Month 4',pct:49}].map((c,i) => (
+                <div key={i} className="conf-item">
+                  <div className="conf-month-label">{c.m}</div>
+                  <div className="conf-bar-bg">
+                    <div className="conf-bar-fill" style={{ width: `${c.pct}%` }} />
+                  </div>
+                  <div className="conf-pct">{c.pct}%</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: 16, fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+              🍽️ Predicting weather is like guessing what you'll eat for dinner next week — harder the further out you go!
+            </div>
+          </div>
+        </div>
+
+      </div>{/* /container */}
+
+      <footer>
+        <div>Built with 💙 for farmers, families, and the future</div>
+        <div style={{ marginTop: 8, fontSize: '0.8rem' }}>
+          <strong>Ocean data</strong> from NOAA &nbsp;•&nbsp; <strong>Weather data</strong> from ERA5 &nbsp;•&nbsp; <strong>AI model</strong> trained on 1950–2023 climate records
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
